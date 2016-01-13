@@ -230,13 +230,6 @@ class APITest(unittest.TestCase):
                              data={'user': self.user.name, 'name': self.model.name})
         self.assertEquals(resp.status_code, 409)
 
-    def test_register_user_fraud(self):
-        user = self._make_user()
-        resp = self._request('POST', '/models/register',
-                             auth=self.user.get_auth_token(),
-                             data={'user': user.name, 'name': self.model.name})
-        self.assertEquals(resp.status_code, 401)
-
     def test_register_unauthenticated(self):
         resp = self._request('POST', '/models/register',
                              data={'user': self.user.name, 'name': self.model.name})

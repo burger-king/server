@@ -1,9 +1,10 @@
 import os
-from ..db import db
-from ..models import Model, User
-from ..excs import ModelNotFoundException, ModelConflictException
+from lib.db import db
+from lib.models import Model, User
+from lib.excs import ModelNotFoundException, ModelConflictException
 from flask import Blueprint, send_from_directory, jsonify, request, abort
 from flask_security import auth_token_required
+from flask_security.core import _token_loader
 
 bp = Blueprint('models', __name__, url_prefix='/models')
 
@@ -11,7 +12,8 @@ bp = Blueprint('models', __name__, url_prefix='/models')
 def validate_owner(model, request):
     """validates model ownership via auth token"""
     auth_token = request.headers.get('Authentication-Token')
-    if model.owner.get_auth_token() != auth_token:
+    user = _token_loader(auth_token)
+    if model.owner != user:
         abort(401)
 
 
@@ -33,9 +35,11 @@ def model(name):
             version = data['meta']['version']
             model.publish(data['meta'], data['model'], version)
             model.make_archive(version)
+            db.session.add(model)
+            db.session.commit()
             return jsonify(status='success')
         except ModelConflictException as e:
-            return jsonify(status='failure', reason=str(e)), 400
+            return jsonify(status='failure', reason=str(e)), 409
 
     elif request.method == 'DELETE':
         # deletes the entire model package
@@ -98,9 +102,10 @@ def register():
 
     # authenticate the user
     name = data['name']
-    user = User.query.filter_by(name=data['user']).first()
+
     auth_token = request.headers.get('Authentication-Token')
-    if user is None or user.get_auth_token() != auth_token:
+    user = _token_loader(auth_token)
+    if not user.is_authenticated:
         abort(401)
 
     # confirm no conflicts
@@ -113,3 +118,17 @@ def register():
     db.session.add(model)
     db.session.commit()
     return jsonify(status='success')
+
+
+@bp.route('/search', methods=['POST'])
+def search():
+    """full-text search models"""
+    data = request.get_json()
+    query = data['query']
+    results = Model.query.search(query, sort=True).limit(50)
+    return jsonify(results=[{
+        'name': model.name,
+        'version': model.latest,
+        'description': model.description,
+        'updated_at': model.updated_at.isoformat()
+    } for model in results])

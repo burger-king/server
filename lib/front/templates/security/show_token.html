@@ -1,0 +1,10 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<section>
+  <h2>Your auth token</h2>
+  To authenticate, run <code>bk login</code> in your terminal, then enter the following:
+  <code class="token">{{ token }}</code>
+  If you don't already have the <code>bk</code> client, you may install it with <code>pip install burgerking</code>.
+</section>
+{% endblock %}

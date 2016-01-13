@@ -1,4 +1,4 @@
-from ..db import db
+from lib.db import db
 from datetime import datetime
 from flask_security import UserMixin, RoleMixin
 
@@ -12,14 +12,14 @@ roles_users = db.Table('roles_users',
 class Role(db.Model, RoleMixin):
     __tablename__ = 'role'
     id              = db.Column(db.Integer(), primary_key=True)
-    name            = db.Column(db.String(80), unique=True)
-    description     = db.Column(db.String(255))
+    name            = db.Column(db.Unicode(80), unique=True)
+    description     = db.Column(db.Unicode(255))
 
 
 class User(db.Model, UserMixin):
     __tablename__ = 'user'
     id              = db.Column(db.Integer(), primary_key=True)
-    name            = db.Column(db.String(255), unique=True)
+    name            = db.Column(db.Unicode(255), unique=True)
     email           = db.Column(db.String(255), unique=True)
     password        = db.Column(db.String(255))
     active          = db.Column(db.Boolean())

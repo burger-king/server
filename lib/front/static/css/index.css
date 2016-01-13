@@ -1,0 +1,72 @@
+@import url(https://fonts.googleapis.com/css?family=Montserrat:400,700);
+
+html, body {
+    margin: 0;
+    padding: 0;
+    color: #222;
+    background: #ffffaf;
+    font-family: "Helvetica Neue", "Helvetica", "Arial", "sans-serif";
+}
+
+h1, h2, h3, .attn {
+    font-family: "Montserrat", "Helvetica Neue", "Helvetica", "Arial", "sans-serif";
+}
+.attn {
+    font-size: 1.4em;
+}
+.messages {
+    padding: 0.5em 2em;
+    text-align: center;
+    font-size: 1.2em;
+    color: #E75E5E;
+}
+
+main {
+    width: 600px;
+    margin: 0 auto;
+    padding: 2em;
+}
+
+input[type=text],
+input[type=password] {
+    background: #FFB3FF;
+    border: 2px solid #222;
+    width: 18em;
+}
+
+input[type=submit] {
+    font-family: "Montserrat", "Helvetica Neue", "Helvetica", "Arial", "sans-serif";
+    padding: 0.2em 0.4em;
+    font-size: 1.2em;
+    background: #fff;
+    border: 2px solid #222;
+}
+
+.field {
+    margin-bottom: 1em;
+}
+label {
+    display: block;
+}
+
+a, a:visited {
+    color: #E75E5E;
+}
+ul {
+    padding: 0;
+    list-style-type: none;
+}
+
+code {
+    background: #EAFF5E;
+    padding: 0.4em 0.6em;
+}
+.token {
+    font-size: 1.8em;
+    padding: 1em;
+    display: block;
+    margin: 1em 0;
+    text-align: center;
+    background: #FF8B5E;
+    word-wrap: break-word;
+}

@@ -1,27 +1,55 @@
 import json
 import shutil
-from ..db import db
+from lib.db import db
 from git import Repo, Actor
+from datetime import datetime
 from flask import current_app
+from flask_sqlalchemy import BaseQuery
 from os import path, makedirs, remove
 from distutils.version import LooseVersion
-from ..excs import ModelNotFoundException, ModelConflictException
+from sqlalchemy_searchable import SearchQueryMixin
+from sqlalchemy_utils.types import TSVectorType
+from lib.excs import ModelNotFoundException, ModelConflictException
+
+
+class ModelQuery(BaseQuery, SearchQueryMixin):
+    pass
 
 
 class Model(db.Model):
     __tablename__   = 'model'
+    query_class     = ModelQuery
     id              = db.Column(db.Integer(), primary_key=True)
-    name            = db.Column(db.String(255), unique=True)
+    name            = db.Column(db.Unicode(255), unique=True)
+    description     = db.Column(db.Unicode())
     owner           = db.relationship('User')
     owner_id        = db.Column(db.Integer(), db.ForeignKey('user.id'))
+    created_at      = db.Column(db.DateTime(), default=datetime.utcnow)
+    updated_at      = db.Column(db.DateTime(), default=datetime.utcnow)
+    search_vector   = db.Column(TSVectorType('name', 'description'))
 
     def __init__(self, name):
         self.name = name
-        self.repo_path = path.join(current_app.config['REPO_DIR'], self.name)
-        self.archive_path = path.join(current_app.config['ARCHIVE_DIR'], self.name)
-        self.meta_path = path.join(self.repo_path, 'meta.json')
-        self.model_path = path.join(self.repo_path, 'model.json')
-        self.repo = Repo(self.repo_path) if path.exists(self.repo_path) else None
+
+    @property
+    def repo_path(self):
+        return path.join(current_app.config['REPO_DIR'], self.name)
+
+    @property
+    def archive_path(self):
+        return path.join(current_app.config['ARCHIVE_DIR'], self.name)
+
+    @property
+    def meta_path(self):
+        return path.join(self.repo_path, 'meta.json')
+
+    @property
+    def model_path(self):
+        return path.join(self.repo_path, 'model.json')
+
+    @property
+    def repo(self):
+        return Repo(self.repo_path) if path.exists(self.repo_path) else None
 
     def register(self, user):
         """registers the model to the specified user"""
@@ -46,7 +74,7 @@ class Model(db.Model):
         if it doesn't already exist"""
         if path.exists(self.repo_path):
             raise ModelConflictException
-        self.repo = Repo.init(self.repo_path)
+        Repo.init(self.repo_path)
 
     @property
     def latest(self):
@@ -58,13 +86,15 @@ class Model(db.Model):
     @property
     def versions(self):
         """all available versions"""
-        if self.repo is None or not self.repo.tags:
+        repo = self.repo
+        if repo is None or not repo.tags:
             return []
-        return [tag.name for tag in self.repo.tags]
+        return [tag.name for tag in repo.tags]
 
     def publish(self, meta_data, model_data, version):
         """updates a repo for the model (publishes a new version)"""
-        if self.repo is None:
+        repo = self.repo
+        if repo is None:
             raise ModelNotFoundException
 
         # the new version must be the newest
@@ -78,10 +108,12 @@ class Model(db.Model):
         with open(self.model_path, 'w') as f:
             json.dump(model_data, f)
 
-        self.repo.index.add(['*'])
+        repo.index.add(['*'])
         author = Actor(self.owner.name, self.owner.email)
-        self.repo.index.commit(version, author=author, committer=author)
-        self.repo.create_tag(version)
+        repo.index.commit(version, author=author, committer=author)
+        repo.create_tag(version)
+        self.description = meta_data.get('description', '')
+        self.updated_at = datetime.utcnow()
 
     def make_archive(self, version):
         """creates a tar archive for a specific version of the model"""
